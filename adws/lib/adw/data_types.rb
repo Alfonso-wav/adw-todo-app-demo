@@ -119,4 +119,14 @@ module Adw
     attribute :adw_id, Types::String
     attribute :model, Types::String.default("sonnet")
   end
+
+  class TestResult < Dry::Struct
+    transform_keys(&:to_sym)
+
+    attribute :test_name, Types::String
+    attribute :passed, Types::Bool
+    attribute :execution_command, Types::String
+    attribute :test_purpose, Types::String
+    attribute :error, Types::String.optional.default(nil)
+  end
 end
