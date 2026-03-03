@@ -74,10 +74,12 @@ module Adw
     end
 
     def run_tests(adw_id, logger, agent_name: "test_runner")
+      log_dir = File.join(Adw.project_root, "adws", "log", adw_id, agent_name)
+
       request = Adw::AgentTemplateRequest.new(
         agent_name: agent_name,
         slash_command: "/adw:test",
-        args: [],
+        args: [log_dir],
         adw_id: adw_id,
         model: "sonnet"
       )

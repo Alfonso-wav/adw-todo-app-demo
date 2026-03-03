@@ -19,6 +19,7 @@ Identificar y corregir proactivamente problemas en la aplicación antes de que a
 ## Variables
 
 TEST_COMMAND_TIMEOUT: 5 minutos
+LOG_DIR: $ARGUMENTS
 
 ## Instrucciones
 
@@ -37,6 +38,9 @@ TEST_COMMAND_TIMEOUT: 5 minutos
 - El orden de ejecución de los tests es importante - las dependencias deben validarse primero
 - Todas las rutas de ficheros son relativas a la raíz del proyecto
 - Ejecuta siempre `pwd` y `cd` antes de cada test para asegurarte de que operas en el directorio correcto
+- Persistencia de outputs en LOG_DIR:
+  - Si LOG_DIR está definido (no vacío), guarda la salida raw de cada comando en `$LOG_DIR/{test_name}_output.txt` usando `tee` para conservar el exit code: `{ cmd 2>&1; } | tee "$LOG_DIR/{test_name}_output.txt"; exit ${PIPESTATUS[0]}`
+  - Si un test falla y existe el fichero de salida, incluye la ruta en el campo error: `"output_file: $LOG_DIR/{test_name}_output.txt\n{resumen_del_error}"`
 
 ## Secuencia de Ejecución de Tests
 
