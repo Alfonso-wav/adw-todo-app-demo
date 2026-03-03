@@ -38,7 +38,7 @@ PLAN_PATH: $2 - Ruta al fichero del plan de implementacion
 - Verifica si Playwright esta disponible: `npx --yes playwright --version`
 - Si no hay navegadores instalados: `npx playwright install chromium`
 - Extrae el numero de issue del JSON de ISSUE.
-- Crea el directorio de evidencia: `mkdir -p /tmp/adw_evidence_{issue_number}`
+- Crea el directorio de evidencia: `mkdir -p .issues/{issue_number}/evidences`
 
 ### Paso 3: Verificar que la aplicacion esta corriendo
 - Comprueba si el backend responde: `curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/tasks`
@@ -56,7 +56,7 @@ PLAN_PATH: $2 - Ruta al fichero del plan de implementacion
   3. Esperar a que la pagina cargue completamente (networkidle).
   4. Tomar una captura de pantalla de pantalla completa.
   5. Si el plan o la issue mencionan interacciones especificas (crear tarea, completar tarea, filtrar, etc.), realizarlas y tomar capturas adicionales.
-  6. Guardar cada captura en `/tmp/adw_evidence_{issue_number}/01_desc.png`, `02_desc.png`, etc.
+  6. Guardar cada captura en `.issues/{issue_number}/evidences/01_desc.png`, `02_desc.png`, etc.
   7. Cerrar el navegador.
 - Ejecuta el script: `node /tmp/adw_review_issue.js`
 - IMPORTANTE: Apunta hacia 1-5 capturas enfocadas en la funcionalidad critica.
@@ -70,7 +70,7 @@ PLAN_PATH: $2 - Ruta al fichero del plan de implementacion
 
 ### Paso 6: Verificar resultados
 - Comprueba que las capturas se crearon correctamente.
-- Lista los ficheros en `/tmp/adw_evidence_{issue_number}/`.
+- Lista los ficheros en `.issues/{issue_number}/evidences/`.
 
 ## Reporte
 
@@ -122,12 +122,12 @@ PLAN_PATH: $2 - Ruta al fichero del plan de implementacion
   "screenshots": [
     {
       "filename": "01_lista_tareas.png",
-      "path": "/tmp/adw_evidence_10/01_lista_tareas.png",
+      "path": ".issues/10/evidences/01_lista_tareas.png",
       "description": "Vista principal mostrando las tareas con la hora limite visible"
     },
     {
       "filename": "02_formulario_crear.png",
-      "path": "/tmp/adw_evidence_10/02_formulario_crear.png",
+      "path": ".issues/10/evidences/02_formulario_crear.png",
       "description": "Formulario de creacion de tarea con el nuevo campo de hora limite"
     }
   ],
