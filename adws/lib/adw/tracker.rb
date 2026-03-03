@@ -157,10 +157,76 @@ module Adw
         tracker[:phase_comments][phase.to_s] = comment_id
       end
 
-      def add_patch(tracker, patch_file, comment_id, logger)
+      def add_patch(tracker, patch_file, plan_comment_id, patch_tracker_comment_id, patch_adw_id, logger)
         tracker[:patches] ||= []
-        tracker[:patches] << { file: patch_file, comment_id: comment_id }
+        tracker[:patches] << {
+          file: patch_file,
+          comment_id: plan_comment_id,
+          tracker_comment_id: patch_tracker_comment_id,
+          adw_id: patch_adw_id
+        }
         logger.info("Patch registered in tracker: #{patch_file}")
+      end
+
+      def render_patch_comment(patch_tracker)
+        emoji = STATUS_EMOJIS.fetch(patch_tracker[:status], "❓")
+        trigger = patch_tracker[:trigger_comment].to_s
+        trigger_preview = trigger.length > 80 ? "#{trigger[0..79]}..." : trigger
+
+        lines = []
+        lines << "## 🩹 ADW Patch Tracker"
+        lines << ""
+        lines << "| Field | Value |"
+        lines << "|-------|-------|"
+        lines << "| **ADW ID** | `#{patch_tracker[:adw_id]}` |"
+        lines << "| **Status** | #{emoji} #{patch_tracker[:status]} |"
+        lines << "| **Trigger** | #{trigger_preview} |"
+        lines << "| **Plan** | `#{patch_tracker[:patch_file]}` |" if patch_tracker[:patch_file]
+        lines << ""
+        lines << COMMENT_MARKER
+
+        lines.join("\n")
+      end
+
+      def save_patch(issue_number, adw_id, patch_tracker)
+        dir = tracker_dir(issue_number)
+        FileUtils.mkdir_p(dir)
+
+        data = {
+          "comment_id"      => patch_tracker[:comment_id],
+          "adw_id"          => patch_tracker[:adw_id],
+          "status"          => patch_tracker[:status],
+          "trigger_comment" => patch_tracker[:trigger_comment],
+          "patch_file"      => patch_tracker[:patch_file],
+          "phase_comments"  => (patch_tracker[:phase_comments] || {})
+        }
+
+        File.write(File.join(dir, "patch-tracker-#{adw_id}.yaml"), YAML.dump(data))
+      end
+
+      def update_patch(patch_tracker, issue_number, new_status, logger)
+        unless STATUSES.include?(new_status)
+          raise ArgumentError, "Unknown tracker status: #{new_status}. Valid: #{STATUSES.join(', ')}"
+        end
+
+        old_status = patch_tracker[:status]
+        patch_tracker[:status] = new_status
+
+        body = render_patch_comment(patch_tracker)
+
+        if patch_tracker[:comment_id]
+          Adw::GitHub.update_issue_comment(patch_tracker[:comment_id], body)
+        else
+          comment_id = Adw::GitHub.create_issue_comment(issue_number, body)
+          patch_tracker[:comment_id] = comment_id
+        end
+
+        old_label = old_status ? "adw/#{old_status}" : nil
+        Adw::GitHub.transition_label(issue_number, "adw/#{new_status}", old_label)
+
+        save_patch(issue_number, patch_tracker[:adw_id], patch_tracker)
+
+        logger.info("Patch tracker updated: adw/#{new_status}")
       end
 
       private
