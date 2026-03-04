@@ -1,0 +1,2 @@
+# Keep all Ruby/shell files with Unix line endings (LF) so shebangs work in WSL/Linux
+* text eol=lf

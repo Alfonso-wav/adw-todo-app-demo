@@ -16,7 +16,7 @@ test('calls onTaskCreated when form is submitted', async () => {
   fireEvent.submit(screen.getByRole('button'))
 
   await waitFor(() => {
-    expect(mockCreate).toHaveBeenCalledWith('Test task')
+    expect(mockCreate).toHaveBeenCalledWith('Test task', null)
   })
 })
 

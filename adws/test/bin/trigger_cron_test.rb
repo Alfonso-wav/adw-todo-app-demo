@@ -269,7 +269,8 @@ class TriggerCronTest < Minitest::Test
     error_label = build_label(name: "adw/error", color: "E11D48")
     issue = build_issue_list_item(number: 4, labels: [error_label])
     Adw::GitHub.stubs(:fetch_open_issues).with("owner/repo").returns([issue])
-    @cron.expects(:should_process_issue?).with(4).returns(true)
+    # adw/error bypasses should_process_issue? entirely
+    @cron.expects(:should_process_issue?).never
     @cron.expects(:trigger_workflow).with(4).returns(true)
 
     @cron.check_and_process_issues

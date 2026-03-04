@@ -1,0 +1,2 @@
+# Keep shell scripts with Unix line endings (LF) so shebangs work in WSL/Linux
+bin/* text eol=lf

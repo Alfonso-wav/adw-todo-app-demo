@@ -1,6 +1,27 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 
+function formatDueDate(dateStr) {
+  if (!dateStr) return null
+  const date = new Date(dateStr + 'T00:00:00')
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const tomorrow = new Date(today)
+  tomorrow.setDate(tomorrow.getDate() + 1)
+
+  const diff = Math.ceil((date - today) / (1000 * 60 * 60 * 24))
+
+  if (diff < 0) return { text: 'Vencida', className: 'due-overdue' }
+  if (diff === 0) return { text: 'Hoy', className: 'due-today' }
+  if (diff === 1) return { text: 'Mañana', className: 'due-soon' }
+  if (diff <= 3) return { text: `En ${diff} días`, className: 'due-soon' }
+
+  return {
+    text: date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }),
+    className: 'due-normal'
+  }
+}
+
 function TaskItem({ task, onToggle, onDelete }) {
   const {
     attributes,
@@ -16,11 +37,13 @@ function TaskItem({ task, onToggle, onDelete }) {
     transition
   }
 
+  const due = formatDueDate(task.due_date)
+
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={`task-item${isDragging ? ' dragging' : ''}`}
+      className={`task-item${isDragging ? ' dragging' : ''}${due && due.className === 'due-overdue' && !task.completed ? ' overdue' : ''}`}
       {...attributes}
     >
       <span className="drag-handle" {...listeners}>⠿</span>
@@ -30,14 +53,20 @@ function TaskItem({ task, onToggle, onDelete }) {
         onChange={() => onToggle(task.id)}
         className="task-checkbox"
       />
-      <span className={task.completed ? 'task-title completed' : 'task-title'}>
-        {task.title}
-      </span>
+      <div className="task-content">
+        <span className={task.completed ? 'task-title completed' : 'task-title'}>
+          {task.title}
+        </span>
+        {due && !task.completed && (
+          <span className={`task-due ${due.className}`}>{due.text}</span>
+        )}
+      </div>
       <button
         onClick={() => onDelete(task.id)}
         className="btn btn-delete"
+        aria-label="Eliminar"
       >
-        Eliminar
+        &times;
       </button>
     </div>
   )

@@ -173,7 +173,8 @@ module Adw
             end
 
             # Case 3: Issue without adw labels or with adw/error → full pipeline
-            if should_process_issue?(issue_number)
+            has_error_label = adw_labels.any? { |l| l.name == "adw/error" }
+            if has_error_label || should_process_issue?(issue_number)
               new_qualifying_issues << issue_number
             end
           end

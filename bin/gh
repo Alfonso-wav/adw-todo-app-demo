@@ -35,10 +35,12 @@ if [ "${1:-}" = "auth" ]; then
   TTY_FLAG="-t"
 fi
 
-exec docker run --rm -i $TTY_FLAG \
+# MSYS_NO_PATHCONV evita que Git Bash/MINGW64 convierta rutas Unix (/c/Users/...)
+# a formato Windows (C:/Users/...) al pasarlas a docker.exe
+exec env MSYS_NO_PATHCONV=1 docker run --rm -i $TTY_FLAG \
   -v "$PROJECT_ROOT:$PROJECT_ROOT" \
   -v "/tmp:/tmp" \
   -v "$PROJECT_ROOT/.gh:/root/.config/gh" \
-  -w "${PWD}" \
+  -w "$PWD" \
   "$IMAGE_NAME" \
   "$@"
