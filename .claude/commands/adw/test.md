@@ -62,7 +62,7 @@ LOG_DIR: $ARGUMENTS
 
 3. **Todos los Tests del Frontend**
    - Comando de Preparación: Ninguno
-   - Comando: `cd frontend && npm test`
+   - Comando: `cd frontend && npm test -- --run`
    - test_name: "all_frontend_tests"
    - test_purpose: "Valida toda la funcionalidad del frontend incluyendo componentes, hooks y utilidades"
 
