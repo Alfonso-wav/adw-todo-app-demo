@@ -11,9 +11,9 @@ vi.mock('../services/api', () => ({
   reorderTasks: vi.fn().mockResolvedValue([])
 }))
 
-test('renders Todo List heading', () => {
+test('renders 2Do List heading', () => {
   render(<App />)
-  const heading = screen.getByRole('heading', { name: /todo list/i })
+  const heading = screen.getByRole('heading', { name: /2do list/i })
   expect(heading).toBeInTheDocument()
 })
 

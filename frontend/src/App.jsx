@@ -40,7 +40,7 @@ function App() {
 
   return (
     <div className="app">
-      <h1>Todo List</h1>
+      <h1>2Do List</h1>
       <TaskForm onTaskCreated={handleCreateTask} />
       <TaskList
         tasks={tasks}
