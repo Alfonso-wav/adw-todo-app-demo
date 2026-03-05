@@ -17,6 +17,9 @@
 adws/log/
 frontend/log/
 
+# ADW lock file
+.adw.lock
+
 # ADW git worktrees
 trees/
 

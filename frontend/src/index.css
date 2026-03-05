@@ -150,3 +150,58 @@ p {
   text-decoration: line-through;
   color: #666;
 }
+
+/* Task date input */
+.task-date-input {
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.task-date-input:focus {
+  outline: none;
+  border-color: #3498db;
+}
+
+/* Task content (title + due date) */
+.task-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+/* Due date badge */
+.task-due {
+  font-size: 0.75rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 10px;
+  display: inline-block;
+  width: fit-content;
+}
+
+.due-overdue {
+  background-color: #fde8e8;
+  color: #e74c3c;
+}
+
+.due-today {
+  background-color: #fde8d0;
+  color: #e67e22;
+}
+
+.due-soon {
+  background-color: #fef9c3;
+  color: #f39c12;
+}
+
+.due-normal {
+  background-color: #f0f0f0;
+  color: #666;
+}
+
+/* Overdue task border */
+.task-item.overdue {
+  border-left: 3px solid #e74c3c;
+}

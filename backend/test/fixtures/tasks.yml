@@ -4,6 +4,7 @@
 #
 #  id         :bigint           not null, primary key
 #  completed  :boolean          default(FALSE), not null
+#  due_date   :date
 #  position   :integer          default(0), not null
 #  title      :string           not null
 #  created_at :datetime         not null
@@ -17,11 +18,13 @@ one:
   title: "Buy groceries"
   completed: false
   position: 0
+  due_date: "2030-12-31"
 
 two:
   title: "Finish homework"
   completed: true
   position: 1
+  due_date: "2020-01-01"
 
 three:
   title: "Call dentist"
