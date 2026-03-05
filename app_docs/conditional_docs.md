@@ -28,3 +28,8 @@ Este documento te ayuda a determinar que documentacion deberias leer en funcion 
     - Cuando se trabaje con estilos CSS globales del frontend (`frontend/src/index.css`)
     - Cuando se implemente o modifique temas visuales (dark mode, light mode, theming)
     - Cuando se resuelvan problemas de contraste, legibilidad o colores en la UI
+- app_docs/feature-45631491-app-title-rebranding.md
+  - Condiciones:
+    - Cuando se trabaje con el título o branding de la aplicación
+    - Cuando se implemente un cambio de nombre o identidad visual de la app
+    - Cuando se resuelvan problemas relacionados con el texto del encabezado principal o la pestaña del navegador
