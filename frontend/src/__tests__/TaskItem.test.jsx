@@ -60,3 +60,23 @@ test('renders drag handle', () => {
   const handle = document.querySelector('.drag-handle')
   expect(handle).toBeInTheDocument()
 })
+
+test('shows overdue label for past due_date', () => {
+  const overdueTask = { ...mockTask, due_date: '2020-01-01' }
+  render(<TaskItem task={overdueTask} onToggle={() => {}} onDelete={() => {}} />)
+  expect(screen.getByText('Vencida')).toBeInTheDocument()
+})
+
+test('shows formatted date for future due_date', () => {
+  const futureTask = { ...mockTask, due_date: '2030-12-31' }
+  render(<TaskItem task={futureTask} onToggle={() => {}} onDelete={() => {}} />)
+  const dateBadge = document.querySelector('.task-due')
+  expect(dateBadge).toBeInTheDocument()
+})
+
+test('does not show due date badge for completed tasks', () => {
+  const completedOverdue = { ...mockTask, completed: true, due_date: '2020-01-01' }
+  render(<TaskItem task={completedOverdue} onToggle={() => {}} onDelete={() => {}} />)
+  expect(screen.queryByText('Vencida')).not.toBeInTheDocument()
+  expect(document.querySelector('.task-due')).not.toBeInTheDocument()
+})

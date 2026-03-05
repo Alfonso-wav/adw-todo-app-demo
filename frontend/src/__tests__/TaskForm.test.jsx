@@ -7,6 +7,12 @@ test('renders input and button', () => {
   expect(screen.getByRole('button', { name: /añadir/i })).toBeInTheDocument()
 })
 
+test('renders date input', () => {
+  render(<TaskForm onTaskCreated={() => {}} />)
+  const dateInput = document.querySelector('input[type="date"]')
+  expect(dateInput).toBeInTheDocument()
+})
+
 test('calls onTaskCreated when form is submitted', async () => {
   const mockCreate = vi.fn().mockResolvedValue()
   render(<TaskForm onTaskCreated={mockCreate} />)
@@ -16,7 +22,7 @@ test('calls onTaskCreated when form is submitted', async () => {
   fireEvent.submit(screen.getByRole('button'))
 
   await waitFor(() => {
-    expect(mockCreate).toHaveBeenCalledWith('Test task')
+    expect(mockCreate).toHaveBeenCalledWith('Test task', null)
   })
 })
 

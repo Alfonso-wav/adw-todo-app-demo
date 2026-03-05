@@ -17,6 +17,7 @@ class Api::TasksControllerTest < ActionDispatch::IntegrationTest
       assert task.key?("completed")
       assert task.key?("created_at")
       assert task.key?("updated_at")
+      assert task.key?("due_date")
     end
   end
 
@@ -148,5 +149,31 @@ class Api::TasksControllerTest < ActionDispatch::IntegrationTest
     json_response = JSON.parse(response.body)
     positions = json_response.map { |t| t["position"] }
     assert_equal positions.sort, positions
+  end
+
+  # Test para POST /api/tasks con due_date
+  test "should create task with due_date" do
+    due_date = "2030-06-15"
+    assert_difference("Task.count", 1) do
+      post api_tasks_url, params: { task: { title: "Task with due date", due_date: due_date } }, as: :json
+    end
+
+    assert_response :created
+    json_response = JSON.parse(response.body)
+    assert_equal due_date, json_response["due_date"]
+  end
+
+  # Test para PATCH /api/tasks/:id actualizando due_date
+  test "should update due_date of a task" do
+    task = tasks(:three)
+    new_due_date = "2030-09-01"
+    patch api_task_url(task), params: { task: { due_date: new_due_date } }, as: :json
+
+    assert_response :success
+    json_response = JSON.parse(response.body)
+    assert_equal new_due_date, json_response["due_date"]
+
+    task.reload
+    assert_equal Date.parse(new_due_date), task.due_date
   end
 end

@@ -4,6 +4,7 @@
 #
 #  id         :bigint           not null, primary key
 #  completed  :boolean          default(FALSE), not null
+#  due_date   :date
 #  position   :integer          default(0), not null
 #  title      :string           not null
 #  created_at :datetime         not null
@@ -59,5 +60,17 @@ class TaskTest < ActiveSupport::TestCase
     tasks = Task.all
     positions = tasks.map(&:position)
     assert_equal positions.sort, positions
+  end
+
+  test "valid task without due_date" do
+    task = Task.new(title: "Task without due date")
+    assert task.valid?
+    assert_nil task.due_date
+  end
+
+  test "valid task with due_date" do
+    task = Task.new(title: "Task with due date", due_date: Date.today + 7)
+    assert task.valid?
+    assert_equal Date.today + 7, task.due_date
   end
 end
