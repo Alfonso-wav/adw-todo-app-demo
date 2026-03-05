@@ -22,10 +22,17 @@ module Adw
         "Error: Claude Code CLI is not installed. #{e.message}"
       end
 
-      def claude_env
+      def claude_env(worktree_cwd: nil)
         project_bin = File.join(Adw.project_root, "bin")
+
+        # When running in a worktree, disable CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR.
+        # Worktrees live inside trees/ under the main repo, so Claude Code walks up
+        # and resolves the project root to the parent repo — causing all bash commands
+        # to execute in the main repo instead of the worktree.
+        maintain_cwd = worktree_cwd ? "false" : ENV.fetch("CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR", "true")
+
         env = {
-          "CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR" => ENV.fetch("CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR", "true"),
+          "CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR" => maintain_cwd,
           "HOME" => ENV["HOME"],
           "USER" => ENV["USER"],
           "PATH" => "#{project_bin}:#{ENV['PATH']}",
@@ -112,14 +119,17 @@ module Adw
         cmd.push("--dangerously-skip-permissions") if request.dangerously_skip_permissions
 
         # Set up environment
-        env = claude_env
+        env = claude_env(worktree_cwd: request.cwd)
 
         begin
           stderr_output = ""
           exit_status = nil
 
+          popen_opts = {}
+          popen_opts[:chdir] = request.cwd if request.cwd
+
           File.open(request.output_file, "w") do |file|
-            Open3.popen3(env, *cmd) do |stdin, stdout, stderr, wait_thr|
+            Open3.popen3(env, *cmd, **popen_opts) do |stdin, stdout, stderr, wait_thr|
               stdin.close # signal EOF immediately so claude doesn't wait for input
               # Drain stderr in a background thread to prevent pipe deadlock
               stderr_thread = Thread.new { stderr.read }
@@ -190,7 +200,8 @@ module Adw
           agent_name: request.agent_name,
           model: request.model,
           dangerously_skip_permissions: true,
-          output_file: output_file
+          output_file: output_file,
+          cwd: request.cwd
         )
 
         # Execute and return response

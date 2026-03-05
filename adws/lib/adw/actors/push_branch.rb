@@ -8,19 +8,25 @@ module Adw
       include Adw::Actors::PipelineInputs
 
       input :tracker
+      input :push_blocking, default: -> { true }
       output :tracker
 
       def call
         log_actor("Pushing branch to origin")
-        branch_name = tracker[:branch_name]
+        branch_name = issue_tracker[:branch_name]
         unless branch_name
-          fail!(error: "No branch_name in tracker, cannot push")
+          fail!(error: "No branch_name in issue_tracker, cannot push")
         end
 
-        _stdout, stderr, status = Open3.capture3("git", "push", "origin", branch_name)
+        git_opts = worktree_path ? {chdir: worktree_path} : {}
+        _stdout, stderr, status = Open3.capture3("git", "push", "origin", branch_name, **git_opts)
         unless status.success?
-          Adw::Tracker.update(tracker, issue_number, "error", logger)
-          fail!(error: "Git push failed: #{stderr.strip}")
+          if push_blocking
+            Adw::Tracker.update(tracker, issue_number, "error", logger)
+            fail!(error: "Git push failed: #{stderr.strip}")
+          else
+            logger.warn("Push failed (non-blocking): #{stderr.strip}")
+          end
         end
 
         logger.info("Branch #{branch_name} pushed to origin")

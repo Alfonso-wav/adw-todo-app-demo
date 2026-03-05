@@ -15,9 +15,16 @@
 
 # ADW execution logs
 adws/log/
+frontend/log/
+
+# ADW git worktrees
+trees/
 
 # GitHub CLI auth (Docker)
 .gh/
 
 .env
+.env.local
 node_modules
+
+frontend/log

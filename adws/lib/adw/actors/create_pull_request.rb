@@ -13,7 +13,7 @@ module Adw
       def call
         log_actor("Creating pull request (agent: pr_creator)")
         Adw::Tracker.update(tracker, issue_number, "creating_pr", logger)
-        branch_name = tracker[:branch_name]
+        branch_name = issue_tracker[:branch_name]
 
         request = Adw::AgentTemplateRequest.new(
           agent_name: "pr_creator",
@@ -21,7 +21,8 @@ module Adw
           args: [branch_name, issue.to_json, adw_id],
           issue_number: issue_number,
           adw_id: adw_id,
-          model: "sonnet"
+          model: "sonnet",
+          cwd: worktree_path
         )
 
         response = Adw::Agent.execute_template(request)

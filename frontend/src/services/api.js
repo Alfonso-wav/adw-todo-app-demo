@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:3000/api'
+const API_BASE_URL = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api`
 
 // GET /api/tasks - Obtener todas las tareas
 export async function fetchTasks() {
@@ -8,13 +8,11 @@ export async function fetchTasks() {
 }
 
 // POST /api/tasks - Crear nueva tarea
-export async function createTask(title, dueDate = null) {
-  const task = { title }
-  if (dueDate) task.due_date = dueDate
+export async function createTask(title) {
   const response = await fetch(`${API_BASE_URL}/tasks`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ task })
+    body: JSON.stringify({ task: { title } })
   })
   if (!response.ok) throw new Error('Failed to create task')
   return response.json()

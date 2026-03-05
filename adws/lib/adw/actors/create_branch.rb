@@ -1,4 +1,7 @@
 # frozen_string_literal: true
+
+require "open3"
+
 module Adw
   module Actors
     class CreateBranch < Actor
@@ -6,6 +9,7 @@ module Adw
       input :issue
       input :issue_command
       input :tracker
+      output :issue_tracker
       output :tracker
       output :branch_name
 
@@ -30,9 +34,17 @@ module Adw
         end
 
         name = response.output.strip
-        tracker[:branch_name] = name
+
+        _, stderr, status = Open3.capture3("git", "checkout", name)
+        unless status.success?
+          Adw::Tracker.update(tracker, issue_number, "error", logger)
+          fail!(error: "Git checkout failed: #{stderr.strip}")
+        end
+
+        issue_tracker[:branch_name] = name
+        Adw::Tracker::Issue.sync(issue_tracker, issue_number, logger)
         self.branch_name = name
-        logger.info("Created branch: #{name}")
+        logger.info("Created and checked out branch: #{name}")
       end
     end
   end

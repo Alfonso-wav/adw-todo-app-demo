@@ -1,0 +1,48 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+#
+# ADW Teardown Worktree
+# Usage: adw_teardown_worktree <branch_name>
+#
+# Invocado por trigger_cron cuando la issue de un worktree está cerrada.
+#
+
+require "bundler/setup"
+require_relative "../lib/adw"
+
+if ARGV.length < 1
+  puts "Usage: adw_teardown_worktree <branch_name>"
+  exit 1
+end
+
+branch_name  = ARGV[0]
+adw_id       = Adw::Utils.make_adw_id
+# Branch format: issue-ISSUE_NUM
+issue_number = branch_name.split("-")[1].to_i
+
+if issue_number == 0
+  warn "ERROR: Cannot extract issue number from branch: #{branch_name}"
+  exit 1
+end
+
+logger        = Adw::Utils.setup_logger(issue_number, adw_id, "adw_teardown_worktree")
+issue_tracker = Adw::Tracker::Issue.load(issue_number) || {}
+
+if issue_tracker[:worktree_path].nil?
+  candidate = File.join(Adw.project_root, "trees", branch_name)
+  issue_tracker[:worktree_path] = candidate if Dir.exist?(candidate)
+end
+
+result = Adw::Actors::DestroyWorktree.result(
+  issue_number: issue_number,
+  adw_id: adw_id,
+  logger: logger,
+  issue_tracker: issue_tracker
+)
+
+unless result.success?
+  logger.error("Teardown failed: #{result.error}")
+  exit 1
+end
+
+logger.info("Teardown complete for #{branch_name}")

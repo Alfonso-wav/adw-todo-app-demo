@@ -9,6 +9,8 @@ class AdwFullPipelineTest < Minitest::Test
     @issue_number = "42"
     @adw_id = "abc12345"
     @logger = build_logger
+    @branch_name = "feature-42-abc12345-test-issue"
+    @worktree_path = "/abs/trees/#{@branch_name}"
 
     # Stub external I/O
     Adw::GitHub.stubs(:repo_url).returns("https://github.com/test/repo")
@@ -17,11 +19,13 @@ class AdwFullPipelineTest < Minitest::Test
     Adw::GitHub.stubs(:create_issue_comment).returns("123")
     Adw::GitHub.stubs(:update_issue_comment)
     Adw::GitHub.stubs(:transition_label)
-    Adw::Tracker.stubs(:load).returns(nil)
+    Adw::Tracker::Issue.stubs(:load).returns(nil)
+    Adw::Tracker::Issue.stubs(:sync)
+    Adw::Tracker::Issue.stubs(:save)
     Adw::Tracker.stubs(:update)
     Adw::Tracker.stubs(:save)
     Adw::Tracker.stubs(:set_phase_comment)
-    Adw::PipelineHelpers.stubs(:plan_path_for).returns(".issues/42/plan.md")
+    Adw::PipelineHelpers.stubs(:plan_path_for).returns(File.join(Adw.project_root, ".issues", "42", "plan.md"))
     Adw::PipelineHelpers.stubs(:parse_issue_review_results).returns({
       success: true, screenshots: [], review_issues: []
     })
@@ -29,11 +33,18 @@ class AdwFullPipelineTest < Minitest::Test
     Adw::PipelineHelpers.stubs(:link_screenshot_urls)
     Adw::R2.stubs(:upload_evidence).returns([])
 
-    # git commands
-    Open3.stubs(:capture3).with("git", "checkout", "-b", anything).returns(["", "", FakeProcessStatus.new(true)])
-    Open3.stubs(:capture3).with("git", "push", "--set-upstream", "origin", anything).returns(["", "", FakeProcessStatus.new(true)])
-    Open3.stubs(:capture3).with("git", "rev-parse", "--abbrev-ref", "HEAD").returns(["main\n", "", FakeProcessStatus.new(true)])
+    # Environment setup script stubs (worktree already created by bin script)
+    script_base = File.join(Adw.project_root, "adws", "bin")
+    Open3.stubs(:capture3).with("#{script_base}/worktree/isolate", Adw.project_root)
+      .returns(['{"postgres_port":5500,"backend_port":8100,"frontend_port":9100,"compose_project":"adw-test"}', "", FakeProcessStatus.new(true)])
+    Open3.stubs(:capture3).with("#{script_base}/worktree/setup", Adw.project_root)
+      .returns(["", "", FakeProcessStatus.new(true)])
+    Open3.stubs(:capture3).with("#{script_base}/worktree/start", Adw.project_root)
+      .returns(["", "", FakeProcessStatus.new(true)])
+
+    # git commands (no chdir since worktree_path is nil — pipeline runs from worktree dir)
     Open3.stubs(:capture3).with("git", "status", "--porcelain").returns(["", "", FakeProcessStatus.new(true)])
+    Open3.stubs(:capture3).with("git", "push", "origin", anything).returns(["", "", FakeProcessStatus.new(true)])
   end
 
   def success_response(output: "done")
@@ -60,26 +71,26 @@ class AdwFullPipelineTest < Minitest::Test
   end
 
   # Happy path: all stages succeed
-  # Agent calls: 1) classify, 2) branch, 3) build plan, 4) implement,
-  # 5) tests, 6) review code, 7) review issue (non-blocking), 8) docs (non-blocking),
-  # 9) PR  (git status returns empty → no commit agent call)
+  # Agent calls: 1) classify, 2) build plan, 3) implement, 4) tests, 5) review code,
+  # 6) review issue (non-blocking), 7) docs (non-blocking), 8) PR
+  # Worktree calls handled by script stubs in setup
   def test_happy_path_returns_success
     Adw::Agent.stubs(:execute_template).returns(
       success_response(output: "/feature"),                               # 1. classify
-      success_response(output: "feature/issue-42"),                       # 2. branch
-      success_response(output: "plan created"),                            # 3. build plan
-      success_response(output: "implemented"),                             # 4. implement plan
-      success_response(output: passing_test_json),                        # 5. run tests
-      success_response(output: ok_review_json),                           # 6. review code
-      success_response(output: "visual review ok"),                       # 7. review issue (non-blocking)
-      success_response(output: "docs generated"),                         # 8. generate docs (non-blocking)
-      success_response(output: "https://github.com/test/repo/pull/1")    # 9. PR
+      success_response(output: "plan created"),                           # 2. build plan
+      success_response(output: "implemented"),                            # 3. implement plan
+      success_response(output: passing_test_json),                       # 4. run tests
+      success_response(output: ok_review_json),                          # 5. review code
+      success_response(output: "visual review ok"),                      # 6. review issue (non-blocking)
+      success_response(output: "docs generated"),                        # 7. generate docs (non-blocking)
+      success_response(output: "https://github.com/test/repo/pull/1")   # 8. PR
     )
 
     result = Adw::Workflows::FullPipeline.result(
       issue_number: @issue_number,
       adw_id: @adw_id,
-      logger: @logger
+      logger: @logger,
+      branch_name: @branch_name
     )
 
     assert result.success?, "Expected success but got error: #{result.error}"
@@ -92,7 +103,8 @@ class AdwFullPipelineTest < Minitest::Test
     result = Adw::Workflows::FullPipeline.result(
       issue_number: @issue_number,
       adw_id: @adw_id,
-      logger: @logger
+      logger: @logger,
+      branch_name: @branch_name
     )
 
     refute result.success?
@@ -108,7 +120,8 @@ class AdwFullPipelineTest < Minitest::Test
     result = Adw::Workflows::FullPipeline.result(
       issue_number: @issue_number,
       adw_id: @adw_id,
-      logger: @logger
+      logger: @logger,
+      branch_name: @branch_name
     )
 
     refute result.success?
@@ -123,23 +136,23 @@ class AdwFullPipelineTest < Minitest::Test
 
     Adw::Agent.stubs(:execute_template).returns(
       success_response(output: "/feature"),          # 1. classify
-      success_response(output: "feature/issue-42"),  # 2. branch
-      success_response(output: "plan created"),       # 3. build plan
-      success_response(output: "implemented"),        # 4. implement plan
+      success_response(output: "plan created"),      # 2. build plan
+      success_response(output: "implemented"),       # 3. implement plan
       # Test attempts (MAX_TEST_RETRY_ATTEMPTS = 4) with resolvers in between
-      success_response(output: failing_test_json),   # 5. test attempt 1
-      success_response(output: "resolved"),           # 6. resolver
-      success_response(output: failing_test_json),   # 7. test attempt 2
-      success_response(output: "resolved"),           # 8. resolver
-      success_response(output: failing_test_json),   # 9. test attempt 3
-      success_response(output: "resolved"),           # 10. resolver
-      success_response(output: failing_test_json)    # 11. test attempt 4
+      success_response(output: failing_test_json),  # 4. test attempt 1
+      success_response(output: "resolved"),          # 5. resolver
+      success_response(output: failing_test_json),  # 6. test attempt 2
+      success_response(output: "resolved"),          # 7. resolver
+      success_response(output: failing_test_json),  # 8. test attempt 3
+      success_response(output: "resolved"),          # 9. resolver
+      success_response(output: failing_test_json)   # 10. test attempt 4
     )
 
     result = Adw::Workflows::FullPipeline.result(
       issue_number: @issue_number,
       adw_id: @adw_id,
-      logger: @logger
+      logger: @logger,
+      branch_name: @branch_name
     )
 
     refute result.success?
@@ -158,21 +171,21 @@ class AdwFullPipelineTest < Minitest::Test
 
     Adw::Agent.stubs(:execute_template).returns(
       success_response(output: "/feature"),           # 1. classify
-      success_response(output: "feature/issue-42"),   # 2. branch
-      success_response(output: "plan created"),        # 3. build plan
-      success_response(output: "implemented"),         # 4. implement plan
-      success_response(output: passing_test_json),    # 5. tests pass
-      success_response(output: critical_review_json), # 6. review: critical
-      success_response(output: "resolver attempt"),    # 7. fix attempt 1
-      success_response(output: critical_review_json), # 8. recheck: still critical
-      success_response(output: "resolver attempt"),    # 9. fix attempt 2
-      success_response(output: critical_review_json)  # 10. recheck: still critical
+      success_response(output: "plan created"),       # 2. build plan
+      success_response(output: "implemented"),        # 3. implement plan
+      success_response(output: passing_test_json),   # 4. tests pass
+      success_response(output: critical_review_json), # 5. review: critical
+      success_response(output: "resolver attempt"),   # 6. fix attempt 1
+      success_response(output: critical_review_json), # 7. recheck: still critical
+      success_response(output: "resolver attempt"),   # 8. fix attempt 2
+      success_response(output: critical_review_json) # 9. recheck: still critical
     )
 
     result = Adw::Workflows::FullPipeline.result(
       issue_number: @issue_number,
       adw_id: @adw_id,
-      logger: @logger
+      logger: @logger,
+      branch_name: @branch_name
     )
 
     refute result.success?
@@ -183,20 +196,20 @@ class AdwFullPipelineTest < Minitest::Test
   def test_fails_when_pr_creation_fails
     Adw::Agent.stubs(:execute_template).returns(
       success_response(output: "/feature"),          # 1. classify
-      success_response(output: "feature/issue-42"),  # 2. branch
-      success_response(output: "plan created"),       # 3. build plan
-      success_response(output: "implemented"),        # 4. implement plan
-      success_response(output: passing_test_json),   # 5. tests pass
-      success_response(output: ok_review_json),      # 6. review ok
-      success_response(output: "visual ok"),          # 7. visual review (non-blocking)
-      success_response(output: "docs ok"),            # 8. docs (non-blocking)
-      failure_response(output: "gh error")            # 9. PR fails
+      success_response(output: "plan created"),      # 2. build plan
+      success_response(output: "implemented"),       # 3. implement plan
+      success_response(output: passing_test_json),  # 4. tests pass
+      success_response(output: ok_review_json),     # 5. review ok
+      success_response(output: "visual ok"),         # 6. visual review (non-blocking)
+      success_response(output: "docs ok"),           # 7. docs (non-blocking)
+      failure_response(output: "gh error")           # 8. PR fails
     )
 
     result = Adw::Workflows::FullPipeline.result(
       issue_number: @issue_number,
       adw_id: @adw_id,
-      logger: @logger
+      logger: @logger,
+      branch_name: @branch_name
     )
 
     refute result.success?
@@ -207,20 +220,20 @@ class AdwFullPipelineTest < Minitest::Test
   def test_visual_review_failure_is_non_blocking
     Adw::Agent.stubs(:execute_template).returns(
       success_response(output: "/feature"),                             # 1. classify
-      success_response(output: "feature/issue-42"),                     # 2. branch
-      success_response(output: "plan created"),                          # 3. build plan
-      success_response(output: "implemented"),                           # 4. implement plan
-      success_response(output: passing_test_json),                      # 5. tests pass
-      success_response(output: ok_review_json),                         # 6. review ok
-      failure_response(output: "playwright error"),                      # 7. visual review fails (non-blocking)
-      success_response(output: "docs ok"),                              # 8. docs (non-blocking)
-      success_response(output: "https://github.com/test/repo/pull/1")  # 9. PR
+      success_response(output: "plan created"),                         # 2. build plan
+      success_response(output: "implemented"),                          # 3. implement plan
+      success_response(output: passing_test_json),                     # 4. tests pass
+      success_response(output: ok_review_json),                        # 5. review ok
+      failure_response(output: "playwright error"),                     # 6. visual review fails (non-blocking)
+      success_response(output: "docs ok"),                             # 7. docs (non-blocking)
+      success_response(output: "https://github.com/test/repo/pull/1") # 8. PR
     )
 
     result = Adw::Workflows::FullPipeline.result(
       issue_number: @issue_number,
       adw_id: @adw_id,
-      logger: @logger
+      logger: @logger,
+      branch_name: @branch_name
     )
 
     assert result.success?, "Expected success even when visual review fails, got error: #{result.error}"

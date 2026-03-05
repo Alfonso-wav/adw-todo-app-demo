@@ -8,16 +8,18 @@ module Adw
       output :tracker
 
       def call
-        log_actor("Implementing plan (agent: sdlc_implementor)")
+        agent_name = prefixed_name("sdlc_implementor")
+        log_actor("Implementing plan (agent: #{agent_name})")
         Adw::Tracker.update(tracker, issue_number, "implementing", logger)
 
         request = Adw::AgentTemplateRequest.new(
-          agent_name: "sdlc_implementor",
+          agent_name: agent_name,
           slash_command: "/implement",
           args: [plan_path],
           issue_number: issue_number,
           adw_id: adw_id,
-          model: "sonnet"
+          model: "sonnet",
+          cwd: worktree_path
         )
 
         response = Adw::Agent.execute_template(request)

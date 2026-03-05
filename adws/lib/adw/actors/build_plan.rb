@@ -20,7 +20,8 @@ module Adw
           args: [path, "#{issue.title}: #{issue.body}"],
           issue_number: issue_number,
           adw_id: adw_id,
-          model: "opus"
+          model: "opus",
+          cwd: worktree_path
         )
 
         response = Adw::Agent.execute_template(request)
@@ -30,6 +31,7 @@ module Adw
           fail!(error: "Plan build failed: #{response.output}")
         end
 
+        tracker[:plan_path] = path
         self.plan_path = path
         logger.info("Plan created at: #{path}")
       end

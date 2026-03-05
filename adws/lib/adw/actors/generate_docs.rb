@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "pathname"
+
 module Adw
   module Actors
     class GenerateDocs < Actor
@@ -10,17 +12,18 @@ module Adw
       output :documentation_skipped, default: -> { false }
 
       def call
-        log_actor("Generating documentation (agent: documentation_generator)")
+        log_actor("Generating documentation (agent: #{agent_name})")
         Adw::Tracker.update(tracker, issue_number, "documenting", logger)
         plan_path = Adw::PipelineHelpers.plan_path_for(issue_number)
 
         request = Adw::AgentTemplateRequest.new(
-          agent_name: "documentation_generator",
+          agent_name: agent_name,
           slash_command: "/adw:document",
-          args: [adw_id, plan_path],
+          args: [adw_id, plan_path, worktree_path].compact,
           issue_number: issue_number,
           adw_id: adw_id,
-          model: "sonnet"
+          model: "sonnet",
+          cwd: worktree_path
         )
 
         logger.info("Running documentation generation...")
@@ -42,8 +45,17 @@ module Adw
 
       private
 
+      def agent_name
+        prefixed_name("documentation_generator")
+      end
+
       def post_documentation_summary(doc_path)
-        content = File.read(doc_path)
+        full_path = if worktree_path && !Pathname.new(doc_path).absolute?
+                      File.join(worktree_path, doc_path)
+                    else
+                      doc_path
+                    end
+        content = File.read(full_path)
         parts = ["## Documentation Updated", "", "`#{doc_path}`", ""]
 
         if content =~ /## Overview\s*\n(.*?)(?=\n## )/m
@@ -55,7 +67,7 @@ module Adw
 
         doc_comment_id = Adw::GitHub.create_issue_comment(
           issue_number,
-          Adw::PipelineHelpers.format_issue_message(adw_id, "documentation_generator", parts.join("\n"))
+          Adw::PipelineHelpers.format_issue_message(adw_id, agent_name, parts.join("\n"))
         )
         Adw::Tracker.set_phase_comment(tracker, "document", doc_comment_id)
         Adw::Tracker.save(issue_number, tracker)

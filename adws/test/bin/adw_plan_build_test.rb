@@ -17,12 +17,14 @@ class AdwPlanBuildTest < Minitest::Test
     Adw::GitHub.stubs(:create_issue_comment).returns("123")
     Adw::GitHub.stubs(:update_issue_comment)
     Adw::GitHub.stubs(:transition_label)
-    Adw::Tracker.stubs(:load).returns(nil)
+    Adw::Tracker::Issue.stubs(:load).returns(nil)
+    Adw::Tracker::Issue.stubs(:sync)
+    Adw::Tracker::Issue.stubs(:save)
     Adw::Tracker.stubs(:update)
     Adw::Tracker.stubs(:save)
     Adw::Tracker.stubs(:set_phase_comment)
-    Adw::PipelineHelpers.stubs(:plan_path_for).returns(".issues/42/plan.md")
-    Open3.stubs(:capture3).with("git", "checkout", "-b", anything).returns(["", "", FakeProcessStatus.new(true)])
+    Adw::PipelineHelpers.stubs(:plan_path_for).returns(File.join(Adw.project_root, ".issues", "42", "plan.md"))
+    Open3.stubs(:capture3).with("git", "checkout", anything).returns(["", "", FakeProcessStatus.new(true)])
     Open3.stubs(:capture3).with("git", "push", "--set-upstream", "origin", anything).returns(["", "", FakeProcessStatus.new(true)])
     Open3.stubs(:capture3).with("git", "rev-parse", "--abbrev-ref", "HEAD").returns(["main\n", "", FakeProcessStatus.new(true)])
   end
@@ -129,7 +131,7 @@ class AdwPlanBuildTest < Minitest::Test
 
   # Tracker is initialized even when no prior state exists
   def test_initializes_tracker_from_scratch
-    Adw::Tracker.stubs(:load).returns(nil)
+    Adw::Tracker::Issue.stubs(:load).returns(nil)
     Adw::Agent.stubs(:execute_template).returns(
       success_response(output: "/feature"),          # 1. classify
       success_response(output: "feature/issue-42"),  # 2. branch
