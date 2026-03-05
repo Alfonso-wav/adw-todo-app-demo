@@ -22,3 +22,9 @@ Este documento te ayuda a determinar que documentacion deberias leer en funcion 
     - Cuando trabajes con cualquier cosa bajo frontend/
     - Cuando necesites saber como arrancar o testear la aplicacion React
     - Cuando trabajes con componentes, servicios o estilos del frontend
+
+- app_docs/feature-45631491-app-title-rebranding.md
+  - Condiciones:
+    - Cuando se trabaje con el título o branding de la aplicación
+    - Cuando se implemente un cambio de nombre o identidad visual de la app
+    - Cuando se resuelvan problemas relacionados con el texto del encabezado principal o la pestaña del navegador
